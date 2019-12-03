@@ -1,7 +1,13 @@
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Dict
 
 Wire = List[Tuple[str, int]]
 Point = Tuple[int, int]
+
+d: Dict[str, Point] = {'L': (1, 0), 'R': (-1, 0), 'U': (0, 1), 'D': (0, -1)}
+
+
+def point_add(p1: Point, p2: Point) -> Point:
+    return tuple(map(sum, zip(p1, p2)))
 
 
 def points_touched(w: Wire) -> Set[Point]:
@@ -12,18 +18,9 @@ def points_touched(w: Wire) -> Set[Point]:
     cur = (0, 0)
 
     for direction, length in w:
-        if direction == 'R':
-            ret.update({(cur[0], cur[1] - o) for o in range(1, length + 1)})
-            cur = (cur[0], cur[1] - length)
-        elif direction == 'L':
-            ret.update({(cur[0], cur[1] + o) for o in range(1, length + 1)})
-            cur = (cur[0], cur[1] + length)
-        elif direction == 'U':
-            ret.update({(cur[0] + o, cur[1]) for o in range(1, length + 1)})
-            cur = (cur[0] + length, cur[1])
-        elif direction == 'D':
-            ret.update({(cur[0] - o, cur[1]) for o in range(1, length + 1)})
-            cur = (cur[0] - length, cur[1])
+        for i in range(length):
+            cur = point_add(cur, d[direction])
+            ret.add(cur)
 
     return ret
 
@@ -37,33 +34,11 @@ def dist(w: Wire, p: Point) -> int:
     cur = (0, 0)
 
     for direction, length in w:
-        if direction == 'R':
-            if cur[0] == p[0] and cur[1] - p[1] <= length:
-                return total + (cur[1] - p[1])
-            else:
-                total += length
-                cur = (cur[0], cur[1] - length)
+        for i in range(length):
+            total += 1
 
-        elif direction == 'L':
-            if cur[0] == p[0] and p[1] - cur[1] <= length:
-                return total + (p[1] - cur[1])
-            else:
-                total += length
-                cur = (cur[0], cur[1] + length)
-
-        elif direction == 'U':
-            if cur[1] == p[1] and p[0] - cur[0] <= length:
-                return total + (p[0] - cur[0])
-            else:
-                total += length
-                cur = (cur[0] + length, cur[1])
-
-        elif direction == 'D':
-            if cur[1] == p[1] and cur[0] - p[0] <= length:
-                return total + (cur[0] - p[0])
-            else:
-                total += length
-                cur = (cur[0] - length, cur[1])
+            if (cur := point_add(cur, d[direction])) == p:
+                return total
 
     raise RuntimeError('p not found on w')
 
