@@ -7,15 +7,10 @@ d: Dict[str, Point] = {'L': (1, 0), 'R': (-1, 0), 'U': (0, 1), 'D': (0, -1)}
 
 
 def point_add(p1: Point, p2: Point) -> Point:
-    # PyCharm gives a warning here because it knows that zip()/map() will return
-    # an Iterable[Tuple[int, int]], but does not know the length of the
-    # iterable. Therefore, the final return value could be Tuple[int, ...]
-    # rather than Tuple[int, int] (separating statement into multiple lines
-    # shows this, this one-liner gives a slightly weirder wrong type).
-    #
-    # I think it should be smart enough to figure out that this is correct
-    # though, given that p1 and p2 are both iterables of fixed size.
-    return tuple(map(sum, zip(p1, p2)))
+    """
+    Ex: (2, 3) + (-1, 0) = (1, 3)
+    """
+    return p1[0] + p2[0], p1[1] + p2[1]
 
 
 def points_touched(w: Wire) -> Set[Point]:
