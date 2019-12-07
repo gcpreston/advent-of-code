@@ -1,49 +1,105 @@
 from typing import List
 
 
-def run(intcode: List[int]) -> List[int]:
+def run(intcode: List[int]) -> None:
     """
-    Run an Intcode program. Makes a copy of the input list, which is returned
-    at the end.
+    Run an Intcode program. Modifies the given list.
     """
-    new_intcode = intcode.copy()
+    # opcode -> number of params
+    num_params = {
+        99: 0,
+        1: 3,
+        2: 3,
+        3: 1,
+        4: 1,
+        5: 2,
+        6: 2,
+        7: 3,
+        8: 3
+    }
 
-    # position of current opcode being read
-    i = 0
+    pointer = 0  # position of current instruction being read
 
-    while new_intcode[i] != 99:
-        a = new_intcode[new_intcode[i + 1]]
-        b = new_intcode[new_intcode[i + 2]]
+    while intcode[pointer] != 99:
+        instr: str = str(intcode[pointer])
+        opcode: int = int(instr[-2:])
+        np = num_params[opcode]
+        modes: List[int] = [int(i) for i in instr[-3::-1]]
+        modes += [0] * (np - len(modes))  # pad to length np
+        update = True  # whether to increment the instruction pointer at end
 
-        if new_intcode[i] == 1:
+        params: List[int] = [0] * np
+        for i in range(np):
+            # Parameter values will always be accessed using intcode[params[i]].
+            # As such, params[i] will contain:
+            #   - mode 0: index specified by value of read parameter
+            #   - mode 1: index of read parameter (so intcode[params[i]] gives
+            #             the raw value)
+            # INVARIANT: "Parameters that an instruction writes to will never
+            #             be in immediate mode."
+            if modes[i] == 0:
+                params[i] = intcode[pointer + i + 1]
+            else:
+                params[i] = pointer + i + 1
+
+        if opcode == 1:
             # add
-            new_intcode[new_intcode[i + 3]] = a + b
-        elif new_intcode[i] == 2:
+            intcode[params[2]] = intcode[params[0]] + intcode[params[1]]
+        elif opcode == 2:
             #  multiply
-            new_intcode[new_intcode[i + 3]] = a * b
+            intcode[params[2]] = intcode[params[0]] * intcode[params[1]]
+        elif opcode == 3:
+            # input
+            intcode[params[0]] = int(input('Input: '))
+        elif opcode == 4:
+            # output
+            print(intcode[params[0]])
+        elif opcode == 5:
+            # jump-if-true
+            if intcode[params[0]]:
+                pointer = intcode[params[1]]
+                update = False
+        elif opcode == 6:
+            # jump-if-false
+            if not intcode[params[0]]:
+                pointer = intcode[params[1]]
+                update = False
+        elif opcode == 7:
+            # less than
+            if intcode[params[0]] < intcode[params[1]]:
+                intcode[params[2]] = 1
+            else:
+                intcode[params[2]] = 0
+        elif opcode == 8:
+            # equals
+            if intcode[params[0]] == intcode[params[1]]:
+                intcode[params[2]] = 1
+            else:
+                intcode[params[2]] = 0
 
-        i += 4
-
-    return new_intcode
+        if update:
+            pointer += np + 1
 
 
 def main(fn: str):
     with open(fn) as file:
-        intcode: List[int] = [int(n) for n in file.read().split(',')]
+        ic_original: List[int] = [int(n) for n in file.read().split(',')]
 
+    intcode = ic_original.copy()
     intcode[1] = 12
     intcode[2] = 2
-    part1_intcode = run(intcode)
+    run(intcode)
 
-    print('Part 1:', part1_intcode[0])
+    print('Part 1:', intcode[0])
 
     for noun in range(100):
         for verb in range(100):
-            intcode[1] = noun
-            intcode[2] = verb
-            part2_intcode = run(intcode)
+            ic_copy = ic_original.copy()
+            ic_copy[1] = noun
+            ic_copy[2] = verb
+            run(ic_copy)
 
-            if part2_intcode[0] == 19690720:
+            if ic_copy[0] == 19690720:
                 print('Part 2:', 100 * noun + verb)
                 return
 
