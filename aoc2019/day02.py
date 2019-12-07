@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Iterable, Optional
 
 
-def run(intcode: List[int]) -> None:
+def run(intcode: List[int], input_data: Iterable[int] = None,
+        return_output: bool = False) -> Optional[List[int]]:
     """
     Run an Intcode program. Modifies the given list.
     """
@@ -19,6 +20,13 @@ def run(intcode: List[int]) -> None:
     }
 
     pointer = 0  # position of current instruction being read
+    out = []  # only used if return_output is set to True
+    if input_data:
+        input_iter = iter(input_data)
+        iter_finished = False
+    else:
+        input_iter = None
+        iter_finished = True
 
     while intcode[pointer] != 99:
         instr: str = str(intcode[pointer])
@@ -50,10 +58,21 @@ def run(intcode: List[int]) -> None:
             intcode[params[2]] = intcode[params[0]] * intcode[params[1]]
         elif opcode == 3:
             # input
-            intcode[params[0]] = int(input('Input: '))
+            # TODO: Clean up
+            if not iter_finished:
+                try:
+                    intcode[params[0]] = next(input_iter)
+                except StopIteration:
+                    iter_finished = True
+                    intcode[params[0]] = int(input('Input: '))
+            else:
+                intcode[params[0]] = int(input('Input: '))
         elif opcode == 4:
             # output
-            print(intcode[params[0]])
+            if return_output:
+                out.append(intcode[params[0]])
+            else:
+                print(intcode[params[0]])
         elif opcode == 5:
             # jump-if-true
             if intcode[params[0]]:
@@ -79,6 +98,9 @@ def run(intcode: List[int]) -> None:
 
         if update:
             pointer += np + 1
+
+    if return_output:
+        return out
 
 
 def main(fn: str):
