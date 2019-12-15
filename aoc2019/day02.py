@@ -1,7 +1,8 @@
 from typing import List, Iterable, Optional
 
 
-def run(intcode: List[int], input_data: Iterable[int] = None,
+def run(intcode: List[int], memory: int = 100,
+        input_data: Iterable[int] = None,
         return_output: bool = False) -> Optional[List[int]]:
     """
     Run an Intcode program. Modifies the given list.
@@ -16,10 +17,12 @@ def run(intcode: List[int], input_data: Iterable[int] = None,
         5: 2,
         6: 2,
         7: 3,
-        8: 3
+        8: 3,
+        9: 1
     }
 
     pointer = 0  # position of current instruction being read
+    base = 0  # relative base, day 9
     out = []  # only used if return_output is set to True
     if input_data:
         input_iter = iter(input_data)
@@ -27,6 +30,7 @@ def run(intcode: List[int], input_data: Iterable[int] = None,
     else:
         input_iter = None
         iter_finished = True
+    intcode += [0] * memory
 
     while intcode[pointer] != 99:
         instr: str = str(intcode[pointer])
@@ -43,12 +47,17 @@ def run(intcode: List[int], input_data: Iterable[int] = None,
             #   - mode 0: index specified by value of read parameter
             #   - mode 1: index of read parameter (so intcode[params[i]] gives
             #             the raw value)
+            #   - mode 2: index specified by relative value of read parameter
             # INVARIANT: "Parameters that an instruction writes to will never
             #             be in immediate mode."
+            position = pointer + i + 1
             if modes[i] == 0:
-                params[i] = intcode[pointer + i + 1]
-            else:
-                params[i] = pointer + i + 1
+                params[i] = intcode[position]
+            elif modes[i] == 1:
+                params[i] = position
+            elif modes[i] == 2:
+                delta = intcode[pointer + i + 1]
+                params[i] = intcode[base + delta]
 
         if opcode == 1:
             # add
@@ -74,12 +83,12 @@ def run(intcode: List[int], input_data: Iterable[int] = None,
             else:
                 print(intcode[params[0]])
         elif opcode == 5:
-            # jump-if-true
+            # jump if true
             if intcode[params[0]]:
                 pointer = intcode[params[1]]
                 update = False
         elif opcode == 6:
-            # jump-if-false
+            # jump if false
             if not intcode[params[0]]:
                 pointer = intcode[params[1]]
                 update = False
@@ -95,6 +104,9 @@ def run(intcode: List[int], input_data: Iterable[int] = None,
                 intcode[params[2]] = 1
             else:
                 intcode[params[2]] = 0
+        elif opcode == 9:
+            # adjust relative base
+            base += intcode[params[0]]
 
         if update:
             pointer += np + 1
